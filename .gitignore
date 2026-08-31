@@ -58,3 +58,6 @@ coverage/
 # Application runtime
 logs/
 *.pid
+
+# Carpetas
+.local/
