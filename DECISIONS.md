@@ -218,6 +218,25 @@ El trabajo se organizará mediante:
 
 `DECISIONS.md` será la referencia principal para las decisiones ya cerradas
 
+## D-017 — Documentación operativa privada
+
+Estado: aceptada
+
+Los archivos utilizados para coordinar agentes de terminal y Spec Driven Development no se publicarán durante Alpha 1.0
+
+Se mantendrán fuera del control de versiones:
+
+- `AGENTS.md`
+- especificaciones completas de trabajo
+- documentación operativa interna relacionada con la ejecución asistida por IA
+
+Antes del despliegue de la versión se podrán publicar ejemplos sanitizados con finalidad documental:
+
+- `AGENTS.example.md`
+- una o varias especificaciones SDD de ejemplo
+
+Los ejemplos públicos deberán mostrar el método de trabajo sin revelar información interna innecesaria ni reproducir las especificaciones completas utilizadas durante el desarrollo
+
 ## Decisiones pendientes
 
 - licencia del repositorio

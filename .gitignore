@@ -61,3 +61,22 @@ logs/
 
 # Carpetas
 .local/
+
+# Maven Wrapper
+.mvn/wrapper/maven-wrapper.jar
+
+# Spring Tool Suite
+.apt_generated
+.factorypath
+.springBeans
+.sts4-cache
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+
+# Agent and SDD private files
+AGENTS.md
+specs/
