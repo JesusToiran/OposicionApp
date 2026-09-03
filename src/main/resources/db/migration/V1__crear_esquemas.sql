@@ -1,0 +1,3 @@
+CREATE SCHEMA core;
+CREATE SCHEMA c1_tai;
+CREATE SCHEMA study;
