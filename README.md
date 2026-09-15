@@ -112,6 +112,128 @@ El desarrollo se organizará mediante GitHub Issues, ramas de trabajo y Pull Req
 
 Las decisiones relevantes del proyecto se documentarán en `DECISIONS.md`
 
+## Base de datos local
+
+El contenedor local de PostgreSQL se inicia con el usuario administrador de arranque definido en `.env`. Ese usuario solo debe usarse para preparar la base inicialmente.
+
+La aplicación usa dos roles separados:
+
+- `oposicionapp_app`: conexión normal de la aplicación. Puede leer y escribir datos en los schemas del proyecto, pero no puede crear ni eliminar tablas, crear bases, crear roles ni actuar como superusuario.
+- `oposicionapp_migrator`: ejecución de Flyway. Puede crear y gestionar objetos dentro de `core`, `c1_tai` y `study`, pero no puede crear bases, crear roles ni actuar como superusuario.
+
+Variables esperadas en `.env`:
+
+```properties
+POSTGRES_DB=oposicionapp
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=
+APP_DB_USER=oposicionapp_app
+APP_DB_PASSWORD=
+FLYWAY_DB_USER=oposicionapp_migrator
+FLYWAY_DB_PASSWORD=
+```
+
+Preparación local desde PowerShell, desde una sesión nueva:
+
+```powershell
+function Import-OposicionAppComposeEnv {
+    param([string] $EnvFile = '.\.env')
+
+    $names = @(
+        'POSTGRES_DB',
+        'POSTGRES_USER',
+        'POSTGRES_PASSWORD',
+        'APP_DB_USER',
+        'APP_DB_PASSWORD',
+        'FLYWAY_DB_USER',
+        'FLYWAY_DB_PASSWORD'
+    )
+
+    foreach ($name in $names) {
+        [Environment]::SetEnvironmentVariable($name, $null, 'Process')
+    }
+
+    $probeFile = Join-Path ([System.IO.Path]::GetTempPath()) ('oposicionapp-env.' + [guid]::NewGuid() + '.compose.yaml')
+
+    try {
+        @'
+services:
+  env_probe:
+    image: scratch
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-}
+      POSTGRES_USER: ${POSTGRES_USER:-}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      APP_DB_USER: ${APP_DB_USER:-}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-}
+      FLYWAY_DB_USER: ${FLYWAY_DB_USER:-}
+      FLYWAY_DB_PASSWORD: ${FLYWAY_DB_PASSWORD:-}
+'@ | Set-Content -LiteralPath $probeFile -Encoding utf8
+
+        $composeConfig = docker compose --env-file $EnvFile -f $probeFile config --format json
+        if ($LASTEXITCODE -ne 0) {
+            throw 'No se pudo leer .env con Docker Compose'
+        }
+
+        $environment = ($composeConfig | ConvertFrom-Json).services.env_probe.environment
+        foreach ($name in $names) {
+            $value = $environment.PSObject.Properties[$name].Value
+            [Environment]::SetEnvironmentVariable($name, [string] $value, 'Process')
+        }
+    }
+    finally {
+        Remove-Item -LiteralPath $probeFile -Force -ErrorAction SilentlyContinue
+    }
+}
+
+Import-OposicionAppComposeEnv
+
+docker compose up -d --wait --wait-timeout 60 postgres
+if ($LASTEXITCODE -ne 0) {
+    throw 'PostgreSQL no ha quedado saludable antes del timeout'
+}
+
+$bootstrap = Get-Content .\src\main\resources\db\bootstrap\postgresql_roles.sql -Raw
+$bootstrap | docker compose exec -T postgres psql -U $env:POSTGRES_USER -d $env:POSTGRES_DB -v ON_ERROR_STOP=1 -v POSTGRES_DB="$env:POSTGRES_DB"
+```
+
+Asignar las contraseñas sin pegarlas en comandos ni guardarlas en SQL:
+
+```powershell
+docker compose exec postgres psql -U $env:POSTGRES_USER -d $env:POSTGRES_DB
+```
+
+Dentro de `psql`:
+
+```postgresql
+\password oposicionapp_app
+\password oposicionapp_migrator
+\q
+```
+
+Después, completar `.env` con `APP_DB_PASSWORD` y `FLYWAY_DB_PASSWORD`. La configuración `local` conectará la aplicación con `oposicionapp_app` y Flyway con `oposicionapp_migrator`.
+
+Desde una sesión nueva, vuelve a cargar las variables con la función `Import-OposicionAppComposeEnv` definida arriba y arranca la aplicación:
+
+```powershell
+Import-OposicionAppComposeEnv
+
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
+```
+
+Si se reutiliza la misma terminal después de arrancar Spring Boot, detener primero la aplicación con `Ctrl+C` antes de ejecutar nuevos comandos en esa sesión.
+
+En una base nueva, arrancar la aplicación una vez para que Flyway cree `public.flyway_schema_history` y aplique `V1`. Después debe ejecutarse una finalización administrativa:
+
+```powershell
+$bootstrap = Get-Content .\src\main\resources\db\bootstrap\postgresql_roles.sql -Raw
+$bootstrap | docker compose exec -T postgres psql -U $env:POSTGRES_USER -d $env:POSTGRES_DB -v ON_ERROR_STOP=1 -v POSTGRES_DB="$env:POSTGRES_DB"
+```
+
+Esa finalización no cambia contraseñas. Conserva el historial y retira el permiso técnico `CREATE` sobre `public` que el migrador necesita solo para crear la tabla de historial inicial.
+
+Si la base ya tenía `V1__crear_esquemas.sql` aplicada por `postgres`, el bootstrap conserva `public.flyway_schema_history`, cambia propietario de los schemas y objetos del proyecto a `oposicionapp_migrator`, retira privilegios de `PUBLIC` y concede a `oposicionapp_app` solo permisos de datos. Si falla, no continuar arrancando la aplicación con `postgres`; corregir el error, volver a ejecutar el mismo bootstrap y después arrancar con el perfil local.
+
 
 ## Roadmap inicial
 
@@ -130,4 +252,4 @@ Pendiente de definir
 
 Proyecto desarrollado conjuntamente por Jesús Toirán y Agnely Rivas
 
-El trabajo se organizará de forma colaborativa mediante GitHub, utilizando Issues, ramas de trabajo y Pull Requests
+El trabajo se organizará de forma colaborativa mediante GitHub, utilizando Issues, GitHub Projects, ramas de trabajo y Pull Requests
