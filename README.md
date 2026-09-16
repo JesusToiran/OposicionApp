@@ -230,7 +230,7 @@ $bootstrap = Get-Content .\src\main\resources\db\bootstrap\postgresql_roles.sql 
 $bootstrap | docker compose exec -T postgres psql -U $env:POSTGRES_USER -d $env:POSTGRES_DB -v ON_ERROR_STOP=1 -v POSTGRES_DB="$env:POSTGRES_DB"
 ```
 
-Esa finalización no cambia contraseñas. Conserva el historial y retira el permiso técnico `CREATE` sobre `public` que el migrador necesita solo para crear la tabla de historial inicial.
+Esa finalización no cambia contraseñas. Conserva el historial, retira el permiso técnico `CREATE` sobre `public` y también retira `CREATE` sobre la base de datos. El migrador conserva capacidad DDL únicamente dentro de `core`, `c1_tai` y `study`.
 
 Si la base ya tenía `V1__crear_esquemas.sql` aplicada por `postgres`, el bootstrap conserva `public.flyway_schema_history`, cambia propietario de los schemas y objetos del proyecto a `oposicionapp_migrator`, retira privilegios de `PUBLIC` y concede a `oposicionapp_app` solo permisos de datos. Si falla, no continuar arrancando la aplicación con `postgres`; corregir el error, volver a ejecutar el mismo bootstrap y después arrancar con el perfil local.
 

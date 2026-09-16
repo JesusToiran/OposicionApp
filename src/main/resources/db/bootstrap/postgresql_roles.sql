@@ -200,6 +200,8 @@ BEGIN
 		REVOKE ALL ON TABLE public.flyway_schema_history FROM oposicionapp_migrator;
 		GRANT ALL PRIVILEGES ON TABLE public.flyway_schema_history TO oposicionapp_migrator;
 		REVOKE CREATE ON SCHEMA public FROM oposicionapp_migrator;
+		EXECUTE format('REVOKE CREATE ON DATABASE %I FROM oposicionapp_migrator',current_database()
+);
 	END IF;
 END
 $$;

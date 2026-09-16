@@ -115,7 +115,8 @@ class OposicionAppApplicationTests {
 			existingDatabase.start();
 
 			Flyway.configure()
-					.dataSource(existingDatabase.getJdbcUrl(), existingDatabase.getUsername(), existingDatabase.getPassword())
+					.dataSource(existingDatabase.getJdbcUrl(), existingDatabase.getUsername(),
+							existingDatabase.getPassword())
 					.locations("classpath:db/migration")
 					.load()
 					.migrate();
@@ -150,9 +151,11 @@ class OposicionAppApplicationTests {
 
 			bootstrapRoles(existingDatabase);
 
-			assertThat(existingAppJdbcTemplate.queryForObject("select count(*) from core.existing_probe", Integer.class))
+			assertThat(
+					existingAppJdbcTemplate.queryForObject("select count(*) from core.existing_probe", Integer.class))
 					.isEqualTo(1);
-			assertThat(existingAppJdbcTemplate.queryForObject("select label from core.existing_probe where id = 1", String.class))
+			assertThat(existingAppJdbcTemplate.queryForObject("select label from core.existing_probe where id = 1",
+					String.class))
 					.isEqualTo("kept");
 			assertThat(flywayHistory(existingDatabase)).containsAllEntriesOf(originalHistory);
 			assertThat(schemaCreatePrivilege(existingDatabase, "oposicionapp_migrator", "public")).isFalse();
@@ -187,7 +190,8 @@ class OposicionAppApplicationTests {
 				postgres,
 				postgres.getUsername(),
 				postgres.getPassword());
-		adminJdbcTemplate.execute("grant create on database \"" + postgres.getDatabaseName() + "\" to oposicionapp_app");
+		adminJdbcTemplate
+				.execute("grant create on database \"" + postgres.getDatabaseName() + "\" to oposicionapp_app");
 		adminJdbcTemplate.execute("grant create on schema core to oposicionapp_app");
 		adminJdbcTemplate.execute("grant select on table public.flyway_schema_history to oposicionapp_app");
 
@@ -340,7 +344,8 @@ class OposicionAppApplicationTests {
 					existingRolesDatabase.getUsername(),
 					existingRolesDatabase.getPassword());
 			adminJdbcTemplate.execute("create role oposicionapp_app login createdb createrole replication bypassrls");
-			adminJdbcTemplate.execute("create role oposicionapp_migrator login createdb createrole replication bypassrls");
+			adminJdbcTemplate
+					.execute("create role oposicionapp_migrator login createdb createrole replication bypassrls");
 
 			bootstrapRoles(existingRolesDatabase);
 
@@ -484,8 +489,7 @@ class OposicionAppApplicationTests {
 				container.getPassword());
 				Statement statement = connection.createStatement()) {
 			statement.execute(sql);
-		}
-		catch (SQLException ex) {
+		} catch (SQLException ex) {
 			throw new CannotGetJdbcConnectionException("Could not bootstrap PostgreSQL roles", ex);
 		}
 	}
@@ -504,7 +508,8 @@ class OposicionAppApplicationTests {
 				container.getUsername(),
 				container.getPassword());
 		adminJdbcTemplate.execute("alter role oposicionapp_app with password '" + sqlLiteral(appPassword) + "'");
-		adminJdbcTemplate.execute("alter role oposicionapp_migrator with password '" + sqlLiteral(migratorPassword) + "'");
+		adminJdbcTemplate
+				.execute("alter role oposicionapp_migrator with password '" + sqlLiteral(migratorPassword) + "'");
 	}
 
 	private static String quoteIdentifier(String identifier) {
@@ -534,9 +539,35 @@ class OposicionAppApplicationTests {
 				throw new IllegalStateException("Bootstrap SQL not found");
 			}
 			return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-		}
-		catch (IOException ex) {
+		} catch (IOException ex) {
 			throw new IllegalStateException("Could not read bootstrap SQL", ex);
+		}
+	}
+
+	@Test
+	void migratorCannotCreateAdditionalSchemaAfterBootstrapFinalization() {
+		bootstrapRoles(postgres);
+
+		JdbcTemplate migratorJdbcTemplate = jdbcTemplateForRole(
+				postgres,
+				"oposicionapp_migrator",
+				migratorPassword);
+
+		JdbcTemplate adminJdbcTemplate = jdbcTemplateForRole(
+				postgres,
+				postgres.getUsername(),
+				postgres.getPassword());
+
+		String schemaName = "forbidden_" + UUID.randomUUID().toString().replace("-", "");
+
+		try {
+			assertThatThrownBy(
+					() -> migratorJdbcTemplate.execute(
+							"CREATE SCHEMA " + quoteIdentifier(schemaName)))
+					.satisfies(exception -> assertSqlState(exception, "42501"));
+		} finally {
+			adminJdbcTemplate.execute(
+					"DROP SCHEMA IF EXISTS " + quoteIdentifier(schemaName) + " CASCADE");
 		}
 	}
 
