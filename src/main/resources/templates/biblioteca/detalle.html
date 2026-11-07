@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${convocatoria.denominacion + ' · OposicionApp'}">Convocatoria · OposicionApp</title>
+    <link rel="stylesheet" th:href="@{/css/biblioteca.css}">
+</head>
+<body>
+<a class="saltar" href="#contenido">Saltar al contenido</a>
+<header class="cabecera"><span class="marca">OposicionApp</span><span>Biblioteca documental</span></header>
+<main id="contenido" class="contenedor">
+    <nav aria-label="Volver a la biblioteca"><a th:href="@{/c1-tai/examenes}">← Todas las convocatorias</a></nav>
+    <p class="seccion">Convocatoria C1 TAI <span th:if="${convocatoria.anioReferencia != null}" th:text="${convocatoria.anioReferencia}"></span></p>
+    <h1 th:text="${convocatoria.denominacion}"></h1>
+    <p class="introduccion" th:if="${convocatoria.referenciaOficial != null}" th:text="${convocatoria.referenciaOficial}"></p>
+    <section th:if="${!convocatoria.documentos.isEmpty()}" aria-labelledby="titulo-documentos">
+        <h2 id="titulo-documentos">Referencias de la convocatoria</h2>
+        <div th:replace="~{biblioteca/documentos :: lista(${convocatoria.documentos})}"></div>
+    </section>
+    <section aria-labelledby="titulo-examenes">
+        <h2 id="titulo-examenes">Exámenes</h2>
+        <p th:if="${convocatoria.examenes.isEmpty()}">Todavía no hay exámenes disponibles para esta convocatoria.</p>
+        <article class="examen" th:each="examen : ${convocatoria.examenes}">
+            <h3 th:text="${examen.denominacion}"></h3>
+            <div th:replace="~{biblioteca/documentos :: lista(${examen.documentos})}"></div>
+            <p th:if="${examen.ejercicios.isEmpty()}">Todavía no hay ejercicios disponibles para este examen.</p>
+            <section class="ejercicio" th:each="ejercicio : ${examen.ejercicios}">
+                <h4 th:text="${ejercicio.denominacion}"></h4>
+                <div th:replace="~{biblioteca/documentos :: lista(${ejercicio.documentos})}"></div>
+            </section>
+        </article>
+    </section>
+</main>
+<footer class="contenedor pie">OposicionApp · Biblioteca C1 TAI</footer>
+</body>
+</html>

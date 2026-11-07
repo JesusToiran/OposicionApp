@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<body>
+<ul th:fragment="lista(documentos)" class="documentos" th:if="${!documentos.isEmpty()}">
+    <li th:each="documento : ${documentos}">
+        <span class="etiqueta" th:text="${documento.verificado ? 'Referencia verificada' : 'Pendiente de verificación'}"></span>
+        <a th:if="${documento.enlace != null}" th:href="${documento.enlace}"
+           rel="noopener noreferrer" th:text="${documento.identificacion}"></a>
+        <strong th:unless="${documento.enlace != null}" th:text="${documento.identificacion}"></strong>
+        <p><span th:text="${documento.tipo}"></span> · <span th:text="${documento.procedencia}"></span></p>
+        <p th:if="${documento.referencia != null}" th:text="${documento.referencia}"></p>
+    </li>
+</ul>
+</body>
+</html>
