@@ -9,11 +9,14 @@ import java.nio.charset.StandardCharsets;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.postgresql.util.PSQLException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,17 +25,22 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.containers.Container.ExecResult;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
+
+import com.github.dockerjava.api.model.Capability;
 
 @Testcontainers
-@SpringBootTest(properties = {
-		"spring.jpa.hibernate.ddl-auto=validate",
-		"spring.jpa.open-in-view=false"
-})
+@ActiveProfiles("test")
+@SpringBootTest
 class OposicionAppApplicationTests {
 
 	@Container
@@ -60,6 +68,43 @@ class OposicionAppApplicationTests {
 
 	@Test
 	void contextLoads() {
+	}
+
+	@Test
+	@EnabledIfSystemProperty(named = "oposicionapp.test.image", matches = ".+")
+	void dockerImageStartsWithRestrictedDatabaseRoleAndReadOnlyFilesystem() {
+		try (Network network = Network.newNetwork();
+				PostgreSQLContainer imageDatabase = new PostgreSQLContainer("postgres:18")
+						.withNetwork(network).withNetworkAliases("postgres");
+				GenericContainer<?> application = new GenericContainer<>(
+						DockerImageName.parse(System.getProperty("oposicionapp.test.image")))) {
+			imageDatabase.start();
+			bootstrapRoles(imageDatabase);
+			setRolePasswords(imageDatabase, appPassword, migratorPassword);
+			application.withNetwork(network)
+					.withExposedPorts(8080)
+					.withEnv(Map.of(
+							"SPRING_PROFILES_ACTIVE", "docker",
+							"POSTGRES_DB", imageDatabase.getDatabaseName(),
+							"APP_DB_USER", "oposicionapp_app",
+							"APP_DB_PASSWORD", appPassword,
+							"FLYWAY_DB_USER", "oposicionapp_migrator",
+							"FLYWAY_DB_PASSWORD", migratorPassword))
+					.withCreateContainerCmdModifier(command -> command.getHostConfig()
+							.withReadonlyRootfs(true)
+							.withCapDrop(Capability.ALL)
+							.withSecurityOpts(List.of("no-new-privileges:true"))
+							.withTmpFs(Map.of("/tmp", "rw,noexec,nosuid,size=64m,mode=1777")))
+					.waitingFor(Wait.forHttp("/").forStatusCode(401)
+							.withStartupTimeout(Duration.ofSeconds(90)));
+			application.start();
+			assertThat(application.getContainerInfo().getConfig().getUser()).isEqualTo("10001:10001");
+			assertThat(jdbcTemplateForRole(imageDatabase, "oposicionapp_app", appPassword)
+					.queryForObject("select current_user", String.class)).isEqualTo("oposicionapp_app");
+			assertThat(roleAdminFlags(imageDatabase, "oposicionapp_app"))
+					.containsExactly(false, false, false, false, false);
+			assertThat(flywayHistory(imageDatabase)).containsEntry("success", true);
+		}
 	}
 
 	@Test
@@ -467,7 +512,7 @@ class OposicionAppApplicationTests {
 		return Boolean.TRUE.equals(exists);
 	}
 
-	private static JdbcTemplate jdbcTemplateForRole(
+	static JdbcTemplate jdbcTemplateForRole(
 			PostgreSQLContainer container,
 			String username,
 			String password) {
@@ -478,7 +523,7 @@ class OposicionAppApplicationTests {
 		return new JdbcTemplate(dataSource);
 	}
 
-	private static void bootstrapRoles(PostgreSQLContainer container) {
+	static void bootstrapRoles(PostgreSQLContainer container) {
 		executeAdminSql(container, bootstrapSqlFor(container));
 	}
 
@@ -499,7 +544,7 @@ class OposicionAppApplicationTests {
 				.replace(":\"POSTGRES_DB\"", quoteIdentifier(container.getDatabaseName()));
 	}
 
-	private static void setRolePasswords(
+	static void setRolePasswords(
 			PostgreSQLContainer container,
 			String appPassword,
 			String migratorPassword) {

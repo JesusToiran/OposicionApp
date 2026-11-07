@@ -1,6 +1,35 @@
 name: oposicionapp
 
 services:
+  app:
+    build:
+      context: .
+    image: oposicionapp:local
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      POSTGRES_DB: "${POSTGRES_DB:?Define POSTGRES_DB en .env}"
+      APP_DB_USER: "${APP_DB_USER:-oposicionapp_app}"
+      APP_DB_PASSWORD: "${APP_DB_PASSWORD:-}"
+      FLYWAY_DB_USER: "${FLYWAY_DB_USER:-oposicionapp_migrator}"
+      FLYWAY_DB_PASSWORD: "${FLYWAY_DB_PASSWORD:-}"
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    pids_limit: 256
+    networks:
+      - backend
+      - web
+
   postgres:
     image: postgres:18
 
@@ -8,9 +37,6 @@ services:
       POSTGRES_DB: "${POSTGRES_DB:?Define POSTGRES_DB en .env}"
       POSTGRES_USER: "${POSTGRES_USER:?Define POSTGRES_USER en .env}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}"
-
-    ports:
-      - "127.0.0.1:5432:5432"
 
     volumes:
       - postgres_data:/var/lib/postgresql
@@ -21,6 +47,17 @@ services:
       timeout: 5s
       retries: 10
       start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    networks:
+      - backend
+
+networks:
+  backend:
+    internal: true
+  web:
+    driver: bridge
 
 volumes:
   postgres_data:
