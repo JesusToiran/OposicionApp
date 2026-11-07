@@ -1,0 +1,32 @@
+# Lista de inclusión: no enviar documentación privada, secretos ni artefactos locales.
+**
+!Dockerfile
+!.dockerignore
+!pom.xml
+!mvnw
+!.mvn/
+!.mvn/wrapper/
+!.mvn/wrapper/maven-wrapper.properties
+!src/
+!src/main/
+!src/main/**
+
+# Exclusiones adicionales incluso dentro de src/main.
+**/.git
+**/.env*
+**/secrets/**
+**/credentials*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/*.jks
+**/*.keystore
+**/*~
+**/*.tmp
+**/*.bak
+**/.idea/**
+**/.vscode/**
+**/AGENTS.md
+**/specs/**
+**/target/**
