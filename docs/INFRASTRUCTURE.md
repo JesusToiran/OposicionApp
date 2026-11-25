@@ -78,8 +78,9 @@ aplica Flyway y exige HTTP 401, UID 10001 y filesystem de solo lectura.
 Sin la propiedad, Maven ejecuta la suite habitual y omite únicamente esa prueba
 que necesita una imagen previamente construida. CI construye la imagen y la activa.
 No se publican imágenes ni informes de pruebas con posibles datos sensibles.
-El workflow CI está preparado para construir y verificar el proyecto, pendiente
-de su primera ejecución en GitHub.
+La [verificación de CI de la PR #2](https://github.com/JesusToiran/OposicionApp/actions/runs/45604522793)
+finalizó correctamente para el commit `6035668`, incluida la validación de Compose,
+la construcción de la imagen y `verify` con Testcontainers y la prueba de imagen.
 
 ## Controles Docker
 

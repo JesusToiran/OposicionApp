@@ -26,4 +26,9 @@ La suite `BibliotecaIntegrationTests` verifica funcionalidad, autorización,
 CSRF, XSS, entradas inválidas, enlaces, cabeceras e integridad sobre PostgreSQL
 temporal. La prueba de actualización V1 → V2 conserva datos e historial.
 Los datos sintéticos se limitan a esos contenedores y transacciones de pruebas.
-La importación de exámenes oficiales no forma parte de esta versión publicable.
+
+La [importación documental piloto](IMPORTACION_PILOTO.md) permite incorporar
+convocatorias, exámenes, ejercicios y referencias documentales mediante una
+ejecución local explícita, sin endpoints HTTP. No importa preguntas ni respuestas
+individuales. Los documentos originales, inventarios y manifiestos permanecen
+fuera de Git y de la imagen Docker.
