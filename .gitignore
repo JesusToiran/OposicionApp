@@ -77,7 +77,20 @@ logs/
 /dist/
 /nbdist/
 
-# Agent and SDD private files
+# Documentación operativa y archivos locales
 AGENTS.md
 specs/
 /EXÁMENES OFICIALES C1 TAI 2005-2026/
+
+# Documentación operativa privada
+DECISIONS_PRIVADO.md
+project-memory_actualizado_*.md
+/docs/private/
+/docs/privado/
+
+# Copias y extracciones locales (sin excluir formatos de forma global)
+/backups/
+/tmp/
+/extracciones/
+*.bak
+*.backup
