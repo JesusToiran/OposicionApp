@@ -15,7 +15,9 @@ La infraestructura local está implementada con Docker Compose, PostgreSQL inter
 
 La biblioteca de exámenes C1 TAI permite consultar convocatorias, exámenes, ejercicios y referencias documentales mediante acceso autenticado en `http://127.0.0.1:8080/c1-tai/examenes`
 
-La versión publicable comienza con la biblioteca vacía y no incorpora la importación de exámenes oficiales. El workflow CI está preparado y pendiente de ejecución en GitHub
+La biblioteca comienza vacía por defecto. El repositorio incluye un [importador documental piloto](docs/IMPORTACION_PILOTO.md) de ejecución local explícita. Los documentos originales, inventarios y manifiestos se mantienen fuera de Git y de la imagen Docker
+
+El workflow CI valida Compose, construye la imagen Docker y ejecuta `verify` con Testcontainers y la prueba de imagen. La [verificación de la PR #2](https://github.com/JesusToiran/OposicionApp/actions/runs/45604522793) finalizó correctamente para el commit `6035668`
 
 El registro de usuarios, las prácticas, los simulacros y el despliegue público continúan pendientes
 
@@ -162,8 +164,10 @@ con esta topología. Debe utilizarse el perfil `docker`, activado por Compose.
 
 La [biblioteca](docs/BIBLIOTECA.md) requiere autenticación y no ofrece operaciones
 web de creación, modificación ni eliminación. La migración V2 crea su estructura
-sin incorporar datos iniciales. La importación de exámenes oficiales queda fuera de esta
-versión publicable.
+sin incorporar datos iniciales. El [importador piloto](docs/IMPORTACION_PILOTO.md)
+incorpora convocatorias, exámenes, ejercicios y referencias documentales mediante
+una ejecución local explícita, sin endpoints HTTP. Los documentos originales,
+inventarios y manifiestos permanecen fuera de Git y de la imagen Docker.
 
 ## Roadmap inicial
 
