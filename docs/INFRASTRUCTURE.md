@@ -3,7 +3,9 @@
 Requisitos: Java 25, Docker Desktop con contenedores Linux y Maven Wrapper.
 El perfil `docker` conecta con `postgres:5432` por la red interna de Docker.
 PostgreSQL no publica puertos hacia el anfitrión. El acceso web se limita a
-`http://127.0.0.1:8080/c1-tai/examenes` y requiere autenticación.
+`127.0.0.1:8080` y requiere una cuenta activa con correo verificado para estudiar.
+HTTPS es obligatorio por defecto. La revisión HTTP por loopback requiere activar
+expresamente el perfil `revision`, que se rechaza al combinarlo con `prod`.
 
 ## Credenciales y preparación inicial
 
@@ -60,11 +62,18 @@ No modificar las migraciones compartidas ni usar `down -v`.
 - `docker`: activado por Compose, con red interna y puerto HTTP local 8080.
 - `test`: recursos exclusivos de pruebas y conexiones asignadas dinámicamente
   por Testcontainers; nunca usa `.env` ni bases personales.
-- `prod`: requiere `JDBC_DATABASE_URL`, los cuatro parámetros de roles y
-  `SECURITY_USER`/`SECURITY_PASSWORD` externos mientras siga la autenticación
-  provisional de Spring Security. Cookies seguras y errores sin detalles internos.
+- `revision`: permite HTTP solo para revisión local. El servidor enlaza loopback;
+  no usar este perfil para publicar un servicio.
+- `prod`: requiere `JDBC_DATABASE_URL`, parámetros de roles y
+  `APP_PUBLIC_ORIGIN` HTTPS. Usa cuentas de PostgreSQL, cookies `__Host-` seguras
+  y errores sin detalles internos. El Compose combina `docker,prod`, mantiene el
+  puerto del anfitrión en loopback y limita el origen del proxy de confianza.
   Requiere HTTPS y configurar la terminación TLS y cualquier proxy antes de
   desplegar. No se incluye un despliegue de producción.
+
+Las pruebas de CSV, plan y cuentas usan bases Testcontainers independientes y
+datos sintéticos generados durante la ejecución. Conservan los recuentos y casos
+de importación sin depender del corpus privado ni de un PostgreSQL personal.
 
 Verificación integrada, sin credenciales locales:
 

@@ -1,0 +1,9 @@
+<!doctype html><html lang="es" xmlns:th="http://www.thymeleaf.org"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Acceder · OposicionApp</title><link rel="stylesheet" th:href="@{/css/acceso.css}">
+</head><body><main class="acceso"><a class="marca" href="/login">OposicionApp <span>Mi Plan TAI</span></a><p class="ceja">Tu espacio de preparación</p><h1>Continúa donde lo dejaste.</h1><p class="intro">Accede con tu cuenta para recuperar tus sesiones, resultados y apuntes.</p>
+<p class="aviso error" role="alert" th:if="${param.error != null}">No se ha podido iniciar sesión. Comprueba los datos o solicita ayuda.</p>
+<p class="aviso" role="status" th:if="${param.salida != null}">Has cerrado la sesión.</p>
+<p class="aviso" role="status" th:if="${param.caducada != null}">Vuelve a iniciar sesión para continuar.</p>
+<p class="aviso" role="status" th:if="${param.actualizada != null}">La solicitud se ha completado. Ya puedes iniciar sesión.</p>
+<form th:action="@{/login}" method="post"><label for="correo">Correo electrónico</label><input id="correo" name="correo" type="email" autocomplete="username" inputmode="email" maxlength="254" required autofocus><label for="clave">Contraseña</label><input id="clave" name="clave" type="password" autocomplete="current-password" maxlength="256" required><button type="submit">Entrar en mi cuenta</button></form>
+<a class="enlace" th:href="@{/auth/recuperar}">He olvidado mi contraseña</a><p class="nota">El acceso se habilita mediante invitación. No compartas tu contraseña.</p></main></body></html>

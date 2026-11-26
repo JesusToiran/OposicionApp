@@ -28,8 +28,72 @@
             <section class="ejercicio" th:each="ejercicio : ${examen.ejercicios}">
                 <h4 th:text="${ejercicio.denominacion}"></h4>
                 <div th:replace="~{biblioteca/documentos :: lista(${ejercicio.documentos})}"></div>
+                <ul>
+                    <th:block th:each="seccion : ${secciones}">
+                        <li th:if="${seccion.ejercicioId == ejercicio.id}">
+                            <a th:href="@{''(seccion=${seccion.id})}" th:text="${seccion.denominacion}"></a>
+                            <span th:text="${' · ' + seccion.preguntas + ' preguntas · ' + seccion.estadoPlantilla}"></span>
+                        </li>
+                    </th:block>
+                </ul>
             </section>
         </article>
+    </section>
+    <section th:if="${pagina != null}" aria-labelledby="titulo-practica" class="ejercicio">
+        <h2 id="titulo-practica" th:text="${pagina.seccion.denominacion}"></h2>
+        <p th:text="${pagina.seccion.estadoPlantilla}"></p>
+        <p>Transcripciones y referencias del paquete Mi Plan TAI v2.0.1. Cotejo visual pendiente; consulta los documentos de origen.</p>
+        <details th:if="${pagina.seccion.contexto != null}" open>
+            <summary>Contexto compartido del supuesto · aportado por v2.0.1, pendiente de cotejo</summary>
+            <p class="texto-fuente" th:text="${pagina.seccion.contexto}"></p>
+        </details>
+        <th:block th:if="${pagina.pregunta != null}">
+            <p th:text="${'Posición ' + pagina.posicion + ' de ' + pagina.seccion.preguntas + ' · número ' + pagina.pregunta.numero + (pagina.pregunta.reserva ? ' · RESERVA' : '')}"></p>
+            <p><span th:text="${pagina.pregunta.origen}"></span> · fila CSV <span th:text="${pagina.pregunta.filaCsv}"></span></p>
+            <p role="status" th:text="${pagina.aviso}"></p>
+            <h3 class="texto-fuente" th:text="${pagina.pregunta.enunciado}"></h3>
+            <form method="get" th:action="@{''}">
+                <input type="hidden" name="seccion" th:value="${pagina.seccion.id}">
+                <input type="hidden" name="posicion" th:value="${pagina.posicion}">
+                <input th:if="${varianteActual != null}" type="hidden" name="variante" th:value="${varianteActual}">
+                <fieldset>
+                    <legend>Selecciona una respuesta</legend>
+                    <label class="opcion-csv" th:each="opcion : ${pagina.opciones}">
+                        <input type="radio" name="respuesta" th:value="${opcion.letra}" required>
+                        <span class="texto-fuente" th:text="${opcion.letra + '. ' + opcion.texto}"></span>
+                    </label>
+                </fieldset>
+                <button type="submit" th:text="${pagina.calificable ? 'Comprobar respuesta' : 'Seleccionar sin calificación'}"></button>
+            </form>
+            <p role="status" th:if="${pagina.resultado != null}" th:text="${pagina.resultado}"></p>
+            <nav aria-label="Preguntas de esta sección" class="navegacion-csv">
+                <a th:if="${pagina.posicion > 1}" th:href="@{''(seccion=${pagina.seccion.id},posicion=${pagina.posicion - 1})}">← Anterior</a>
+                <a th:if="${pagina.posicion < pagina.seccion.preguntas}" th:href="@{''(seccion=${pagina.seccion.id},posicion=${pagina.posicion + 1})}">Siguiente →</a>
+            </nav>
+            <details th:if="${!pagina.variantes.isEmpty()}">
+                <summary>Transcripciones alternativas del CSV · conservadas sin sobrescribir textos</summary>
+                <p><a th:href="@{''(seccion=${pagina.seccion.id},posicion=${pagina.posicion})}">Transcripción del cuestionario TSV</a></p>
+                <ul><li th:each="variante : ${pagina.variantes}">
+                    <a th:href="@{''(seccion=${pagina.seccion.id},posicion=${pagina.posicion},variante=${variante.id})}" th:text="${variante.archivo + ' · fila ' + variante.fila}"></a>
+                </li></ul>
+            </details>
+        </th:block>
+        <p th:if="${pagina.pregunta == null}">El CSV no aporta preguntas estructuradas en esta sección. Los documentos y las claves disponibles se conservan para consulta.</p>
+        <p th:text="${'Filas de plantilla conservadas: ' + pagina.plantillas}"></p>
+        <details th:if="${!pagina.anexos.isEmpty()}">
+            <summary>Documentos originales y anexos del paquete · referencias pendientes de corroboración</summary>
+            <ol><li th:each="anexo : ${pagina.anexos}">
+                <a th:href="@{''(anexo=${anexo.id})}" th:text="${anexo.ruta}"></a>
+            </li></ol>
+        </details>
+        <details th:if="${!pagina.extracciones.isEmpty()}">
+            <summary th:text="${pagina.extracciones.size() + ' filas de extracción pendientes de revisión'}"></summary>
+            <article th:each="extraccion : ${pagina.extracciones}">
+                <h3 th:text="${extraccion.documento + ' · página ' + extraccion.pagina + ' · fila CSV ' + extraccion.fila}"></h3>
+                <p th:text="${extraccion.estado}"></p>
+                <pre class="texto-fuente" th:text="${extraccion.contenido}"></pre>
+            </article>
+        </details>
     </section>
 </main>
 <footer class="contenedor pie">OposicionApp · Biblioteca C1 TAI</footer>

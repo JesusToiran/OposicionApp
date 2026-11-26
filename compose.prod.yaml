@@ -1,0 +1,154 @@
+# Complemento: docker compose --env-file /ruta/.env.prod -f compose.yaml -f compose.prod.yaml ...
+name: oposicionapp-prod
+
+x-production-logging: &production-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  app:
+    build: !reset null
+    image: "${APP_IMAGE:?Define una imagen local versionada y verificada}"
+    pull_policy: never
+    platform: linux/amd64
+    entrypoint: !override
+      - bash
+      - -ec
+      - |
+        for file in /run/secrets/spring.datasource.password /run/secrets/spring.flyway.password; do
+          [[ -s "$$file" && -n "$$(cat "$$file")" ]] || { printf '%s\n' 'Falta una contraseña obligatoria.' >&2; exit 1; }
+        done
+        exec java -jar /app/application.jar
+    environment: !override
+      SPRING_PROFILES_ACTIVE: docker,prod
+      SERVER_ADDRESS: 0.0.0.0
+      SPRING_CONFIG_IMPORT: configtree:/run/secrets/
+      JDBC_DATABASE_URL: "${JDBC_DATABASE_URL:?Define JDBC_DATABASE_URL}"
+      APP_DB_USER: "${APP_DB_USER:?Define APP_DB_USER}"
+      FLYWAY_DB_USER: "${FLYWAY_DB_USER:?Define FLYWAY_DB_USER}"
+      APP_PUBLIC_ORIGIN: "${APP_PUBLIC_ORIGIN:?Define el origen público HTTPS}"
+      TRUSTED_PROXY_CIDR: "${TRUSTED_PROXY_CIDR:?Define solo la puerta de enlace autorizada}"
+      JAVA_TOOL_OPTIONS: >-
+        -Xms256m -Xmx1024m -XX:MaxMetaspaceSize=256m
+        -XX:ReservedCodeCacheSize=128m -XX:MaxDirectMemorySize=128m
+        -Xss512k -XX:ActiveProcessorCount=2 -XX:+ExitOnOutOfMemoryError
+    secrets:
+      - source: app_db_password
+        target: spring.datasource.password
+      - source: flyway_db_password
+        target: spring.flyway.password
+    ports: !override
+      - "127.0.0.1:8080:8080"
+    user: "10001:10001"
+    read_only: true
+    restart: unless-stopped
+    mem_limit: 2g
+    memswap_limit: 2g
+    cpus: 2.0
+    pids_limit: 256
+    cap_drop: !override [ALL]
+    security_opt: !override ["no-new-privileges:true"]
+    tmpfs: !override
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+    logging: *production-logging
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -ec
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/8080
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    networks: !override [backend, web]
+
+  postgres:
+    image: "postgres:18@${POSTGRES_IMAGE_DIGEST:?Define el digest verificado de PostgreSQL 18}"
+    platform: linux/amd64
+    environment: !override
+      POSTGRES_DB: "${POSTGRES_DB:?Define POSTGRES_DB}"
+      POSTGRES_USER: "${POSTGRES_USER:?Define POSTGRES_USER}"
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+    secrets:
+      - postgres_password
+    ports: !reset []
+    command:
+      - postgres
+      - -c
+      - max_connections=40
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - effective_cache_size=512MB
+      - -c
+      - work_mem=4MB
+      - -c
+      - maintenance_work_mem=64MB
+      - -c
+      - max_parallel_workers_per_gather=0
+      - -c
+      - password_encryption=scram-sha-256
+    restart: unless-stopped
+    mem_limit: 1g
+    memswap_limit: 1g
+    cpus: 1.0
+    pids_limit: 128
+    shm_size: 256m
+    logging: *production-logging
+    networks: !override [backend]
+
+  db-bootstrap:
+    image: "postgres:18@${POSTGRES_IMAGE_DIGEST:?Define el digest verificado de PostgreSQL 18}"
+    platform: linux/amd64
+    profiles: [tools]
+    entrypoint: [bash, /opt/bootstrap/bootstrap.sh]
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      POSTGRES_DB: "${POSTGRES_DB:?Define POSTGRES_DB}"
+      POSTGRES_USER: "${POSTGRES_USER:?Define POSTGRES_USER}"
+      APP_DB_USER: "${APP_DB_USER:?Define APP_DB_USER}"
+      FLYWAY_DB_USER: "${FLYWAY_DB_USER:?Define FLYWAY_DB_USER}"
+    secrets:
+      - postgres_password
+      - app_db_password
+      - flyway_db_password
+    volumes:
+      - ./deploy/postgres/bootstrap.sh:/opt/bootstrap/bootstrap.sh:ro
+      - ./src/main/resources/db/bootstrap/postgresql_roles.sql:/opt/bootstrap/postgresql_roles.sql:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=8m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: "no"
+    pids_limit: 32
+    mem_limit: 128m
+    cpus: 0.5
+    logging: *production-logging
+    networks: [backend]
+
+networks:
+  backend:
+    internal: true
+  web:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "${PROXY_NETWORK_SUBNET:?Define una subred web libre}"
+          gateway: "${PROXY_NETWORK_GATEWAY:?Define la puerta de enlace web}"
+
+secrets:
+  postgres_password:
+    file: "${POSTGRES_PASSWORD_FILE:?Define el archivo del administrador}"
+  app_db_password:
+    file: "${APP_DB_PASSWORD_FILE:?Define el archivo del usuario de aplicación}"
+  flyway_db_password:
+    file: "${FLYWAY_DB_PASSWORD_FILE:?Define el archivo del migrador}"

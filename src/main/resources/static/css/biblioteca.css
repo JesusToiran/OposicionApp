@@ -44,3 +44,7 @@ main { padding-block: clamp(2rem, 6vw, 4.5rem); min-height: 70vh; }
 .saltar { position: absolute; top: 0; left: 1rem; padding: .75rem; background: var(--papel); transform: translateY(-150%); z-index: 1; }
 .saltar:focus { transform: translateY(0); }
 @media (max-width: 30rem) { .cabecera { flex-direction: column; align-items: flex-start; } }
+/* Los saltos pertenecen a la transcripción original y no se normalizan. */
+.texto-fuente { white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; }
+.opcion-csv { display: flex; align-items: baseline; gap: .6rem; padding: .6rem 0; }
+.navegacion-csv { display: flex; gap: 2rem; margin: 1.5rem 0; }

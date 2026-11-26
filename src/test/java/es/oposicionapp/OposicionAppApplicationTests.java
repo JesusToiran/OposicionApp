@@ -85,6 +85,7 @@ class OposicionAppApplicationTests {
 					.withExposedPorts(8080)
 					.withEnv(Map.of(
 							"SPRING_PROFILES_ACTIVE", "docker",
+							"OPOSICIONAPP_AUTH_HTTPS_OBLIGATORIO", "false",
 							"POSTGRES_DB", imageDatabase.getDatabaseName(),
 							"APP_DB_USER", "oposicionapp_app",
 							"APP_DB_PASSWORD", appPassword,

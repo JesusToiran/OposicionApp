@@ -39,7 +39,7 @@ public class BibliotecaService {
 			List<ExamenVista> vistas = examenesEncontrados.stream().map(examen -> new ExamenVista(
 					examen.getDenominacion(),
 					ejerciciosEncontrados.stream().filter(e -> e.getExamen().getId().equals(examen.getId()))
-							.map(e -> new EjercicioVista(e.getDenominacion(), vinculos.stream()
+							.map(e -> new EjercicioVista(e.getId(), e.getDenominacion(), vinculos.stream()
 									.filter(v -> v.getEjercicio() != null && v.getEjercicio().getId().equals(e.getId()))
 									.map(v -> documentoVista(v.getDocumento())).toList())).toList(),
 					vinculos.stream().filter(v -> v.getExamen() != null && v.getExamen().getId().equals(examen.getId()))
@@ -78,7 +78,7 @@ public class BibliotecaService {
 	public record ConvocatoriaResumen(UUID id, String denominacion, Integer anioReferencia) { }
 	public record DocumentoVista(String identificacion, String procedencia, String tipo, String referencia,
 			boolean verificado, String enlace) { }
-	public record EjercicioVista(String denominacion, List<DocumentoVista> documentos) { }
+	public record EjercicioVista(UUID id, String denominacion, List<DocumentoVista> documentos) { }
 	public record ExamenVista(String denominacion, List<EjercicioVista> ejercicios, List<DocumentoVista> documentos) { }
 	public record ConvocatoriaDetalle(String denominacion, Integer anioReferencia, String referenciaOficial,
 			List<ExamenVista> examenes, List<DocumentoVista> documentos) { }

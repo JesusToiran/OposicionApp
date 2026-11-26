@@ -1,0 +1,20 @@
+# Aplicar después de confirmar que la imagen implementa CSV y plan TAI.
+# Rutas relativas al compose.yaml raíz, primer archivo -f.
+services:
+  app:
+    environment:
+      OPOSICIONAPP_CSV_ANEXOS: /documentacion/anexos
+      OPOSICIONAPP_PLAN_RECURSOS: /documentacion/plan-tai
+    volumes:
+      - type: bind
+        source: ./.local/importacion-v201/carga/anexos
+        target: /documentacion/anexos
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./.local/importacion-v201/integracion-plan-tai/original
+        target: /documentacion/plan-tai
+        read_only: true
+        bind:
+          create_host_path: false

@@ -36,7 +36,9 @@ services:
     environment:
       POSTGRES_DB: "${POSTGRES_DB:?Define POSTGRES_DB en .env}"
       POSTGRES_USER: "${POSTGRES_USER:?Define POSTGRES_USER en .env}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en .env}"
+      # La imagen exige una contraseña no vacía o un archivo; rechaza ambas a la vez.
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-}"
+      POSTGRES_PASSWORD_FILE: "${POSTGRES_PASSWORD_FILE:-}"
 
     volumes:
       - postgres_data:/var/lib/postgresql

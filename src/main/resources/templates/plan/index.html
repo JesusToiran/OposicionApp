@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet">
+    <meta name="referrer" content="no-referrer">
+    <meta name="theme-color" content="#0b1128">
+    <meta name="csrf-token" th:content="${_csrf.token}">
+    <meta name="csrf-header" th:content="${_csrf.headerName}">
+    <title>OposicionApp · Mi Plan TAI</title>
+    <link rel="stylesheet" href="styles.css?v=2.0.1">
+    <link rel="stylesheet" href="bridge.css?v=1">
+    <script src="bridge.js?v=1" defer></script>
+    <script src="scoring.js?v=2.0.1" defer></script>
+    <script src="historical.js?v=2.0.1" defer></script>
+    <script src="app.js?v=2.0.1" defer></script>
+</head>
+<body><a class="plan-saltar" href="#root">Saltar al contenido</a><nav class="plan-cuenta" aria-label="Cuenta"><a sec:authorize="hasRole('ADMIN')" th:href="@{/admin/usuarios}">Administrar usuarios</a><form th:action="@{/logout}" method="post"><button class="btn secondary" type="submit">Cerrar sesión</button></form></nav><div id="root"><div class="loading">Cargando tu plan de estudio…</div></div></body>
+</html>

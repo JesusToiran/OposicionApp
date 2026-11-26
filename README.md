@@ -19,7 +19,11 @@ La biblioteca comienza vacía por defecto. El repositorio incluye un [importador
 
 El workflow CI valida Compose, construye la imagen Docker y ejecuta `verify` con Testcontainers y la prueba de imagen. La [verificación de la PR #2](https://github.com/JesusToiran/OposicionApp/actions/runs/45604522793) finalizó correctamente para el commit `6035668`
 
-El registro de usuarios, las prácticas, los simulacros y el despliegue público continúan pendientes
+La versión integrada añade importación CSV, consulta del plan TAI y progreso persistido por usuario. Las migraciones V3–V5 incorporan esos datos y las cuentas con roles, sesiones y verificación de correo. El contenido documental continúa fuera de Git y debe cargarse expresamente.
+
+El acceso usa correo y contraseña mediante formulario; HTTP Basic está deshabilitado. La administración prepara invitaciones y el estudio exige correo verificado. El adaptador de envío de correo todavía está pendiente: sin él no se envían invitaciones, verificación ni recuperación. No hay registro público.
+
+Las sesiones de práctica y simulacro completas y el despliegue público continúan pendientes. La [guía de la versión integrada](docs/VERSION_INTEGRADA.md) describe las capacidades y límites de esta entrega.
 
 La estrategia de versiones seguirá una evolución progresiva mediante versiones Alpha
 
@@ -122,6 +126,8 @@ Las decisiones relevantes del proyecto se documentarán en `DECISIONS.md`
 
 La guía de [infraestructura](docs/INFRASTRUCTURE.md) describe los perfiles,
 el arranque con Docker y la verificación integrada de CI.
+La [guía de despliegue](docs/DEPLOYMENT.md) recoge la configuración candidata de
+producción, sus pruebas locales y la activación sujeta a aprobación humana.
 
 El contenedor local de PostgreSQL se inicia con el usuario administrador de arranque definido en `.env`. Ese usuario solo debe usarse para preparar la base inicialmente.
 

@@ -3,7 +3,7 @@ package es.oposicionapp;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static es.oposicionapp.TestAccounts.user;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -66,12 +66,12 @@ class BibliotecaIntegrationTests {
 		registry.add("spring.datasource.password", () -> APP_PASSWORD);
 		registry.add("spring.flyway.user", () -> "oposicionapp_migrator");
 		registry.add("spring.flyway.password", () -> MIGRATOR_PASSWORD);
-		registry.add("spring.security.user.name", () -> "lector-prueba");
-		registry.add("spring.security.user.password", () -> WEB_PASSWORD);
+		registry.add("oposicionapp.auth.https-obligatorio", () -> false);
 	}
 
 	@Autowired WebApplicationContext context;
 	@Autowired JdbcTemplate jdbc;
+	@Autowired org.springframework.security.crypto.password.PasswordEncoder passwords;
 	@Autowired BibliotecaService biblioteca;
 	@Autowired ConvocatoriaRepository convocatorias;
 	@Autowired ExamenRepository examenes;
@@ -80,14 +80,16 @@ class BibliotecaIntegrationTests {
 
 	@BeforeEach
 	void web() {
+		TestAccounts.bind(jdbc);
+		jdbc.update("insert into core.cuenta(id,correo,password_hash,rol,correo_verificado_en) values (?,?,?,'USER',current_timestamp)",UUID.randomUUID(),"lector-prueba@example.invalid",passwords.encode(WEB_PASSWORD));
 		mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
 	}
 
 	@Test
 	void loginRedirigeALaBiblioteca() throws Exception {
-		var result = mvc.perform(post("/login").with(csrf())
-				.param("username", "lector-prueba").param("password", WEB_PASSWORD))
-				.andExpect(status().isFound()).andExpect(redirectedUrl(LISTADO)).andReturn();
+		var result = mvc.perform(post("/login").with(csrf()).contentType("application/x-www-form-urlencoded")
+				.param("correo", "lector-prueba@example.invalid").param("clave", WEB_PASSWORD))
+				.andExpect(status().isFound()).andExpect(redirectedUrl("/c1-tai/plan/")).andReturn();
 		MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
 		assertThat(session).isNotNull();
 		mvc.perform(get(LISTADO).session(session)).andExpect(status().isOk());
@@ -96,8 +98,8 @@ class BibliotecaIntegrationTests {
 
 	@Test
 	void loginIncorrectoNoAutentica() throws Exception {
-		var result = mvc.perform(post("/login").with(csrf())
-				.param("username", "lector-prueba").param("password", WEB_PASSWORD + "incorrecta"))
+		var result = mvc.perform(post("/login").with(csrf()).contentType("application/x-www-form-urlencoded")
+				.param("correo", "lector-prueba@example.invalid").param("clave", WEB_PASSWORD + "incorrecta"))
 				.andExpect(status().isFound()).andExpect(redirectedUrl("/login?error")).andReturn();
 		mvc.perform(get(LISTADO).accept("application/json")
 				.session((MockHttpSession) result.getRequest().getSession()))
@@ -115,7 +117,9 @@ class BibliotecaIntegrationTests {
 		assertThat(html).contains("Exámenes oficiales C1 TAI", "Biblioteca de convocatorias y exámenes oficiales.",
 				"Todavía no hay convocatorias disponibles.", "Estamos preparando la biblioteca de exámenes oficiales C1 TAI.");
 		assertThat(jdbc.queryForList("select tablename from pg_tables where schemaname='c1_tai'", String.class))
-				.containsExactlyInAnyOrder("convocatoria", "examen", "ejercicio", "documento_oficial", "vinculo_documental");
+				.containsExactlyInAnyOrder("convocatoria", "examen", "ejercicio", "documento_oficial", "vinculo_documental",
+						"csv_lote", "csv_fila", "csv_seccion", "csv_anexo", "csv_seccion_anexo", "csv_pregunta",
+						"csv_procedencia", "csv_variante", "csv_plantilla", "csv_extraccion", "csv_resolucion", "plan_tai_recurso");
 	}
 
 	@Test
@@ -210,7 +214,7 @@ class BibliotecaIntegrationTests {
 				.andExpect(header().string("Content-Security-Policy", "default-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"))
 				.andExpect(header().string("X-Content-Type-Options", "nosniff"))
 				.andExpect(header().string("X-Frame-Options", "DENY"))
-				.andExpect(header().string("Referrer-Policy", "strict-origin-when-cross-origin"))
+				.andExpect(header().string("Referrer-Policy", "no-referrer"))
 				.andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")))
 				.andExpect(header().doesNotExist("Strict-Transport-Security"));
 		mvc.perform(get(LISTADO).secure(true).with(user("lector")))
